@@ -17,8 +17,8 @@ our @EXPORT_OK = qw(TRUE FALSE STATUS SUCCESS FAILURE);
 
 use IxHash;
 
-our $version         = '2.28';
-our $releasedate     = '07-29-2020';
+our $version         = '2.29';
+our $releasedate     = '01-20-2021';
 our $pythonVersion   = '2.27';
 our $appType         = 'IDrive';
 our $servicePathName    = lc($appType).'It';
@@ -152,6 +152,7 @@ our $versionRestoreFile = 'versionRestoresetFile.txt';
 our $unzipLog     = 'unzipLog.txt';
 our $updateLog    = '.updateLog.txt';
 our $updatePid    = 'update.pid';
+our $preupdpid		= 'preupdate.pid';
 our $freshInstall = 'freshInstall';
 
 our $isUserConfigModified = 0;
@@ -313,15 +314,11 @@ if (scalar(@matches) > 2) {
 our $IDriveSupportEmail = 'support@'.lc($appType).'.com';
 
 # production download URL
-my $IDriveAppUrl = "https://www.idrivedownloads.com/downloads/linux/download-for-linux/IDriveScripts/IDriveForLinux.zip";
-# my $IDriveAppUrl = "http://192.168.3.147/IDriveForLinux.zip";
-# SVN download URL
-#my $IDriveAppUrl = " -u deepak:deepak http://192.168.3.169/svn/linux_repository/trunk/PackagesForTesting/IDriveForLinux/IDriveForLinux.zip";
+my $IDriveAppUrl = "https://www.idrivedownloads.com/downloads/linux/download-for-linux/IDrive_Scripts/IDriveForLinux.zip";
 
 # production download URL
 my $IBackupAppUrl = "https://www.ibackup.com/online-backup-linux/downloads/download-for-linux/IBackup_for_Linux.zip";
-# SVN download URL
-#my $IBackupAppUrl = " -u deepak:deepak http://192.168.3.169/svn/linux_repository/trunk/PackagesForTesting/IBackupForLinux/IBackup_for_Linux.zip";
+
 our $accountSignupURL = "https://www.ibackup.com/newibackup/signup";
 $accountSignupURL = "https://www.idrive.com/idrive/signup" if($appType eq 'IDrive');
 
@@ -1293,7 +1290,7 @@ our @errorArgumentsExit = (
 	"No route to host",
 	"Connection refused",
 	#"failed to connect",
-	"Connection timed out",
+	# "Connection timed out",
 	"Invalid device id",
 	"not enough free space on device",
 	"Unable to proceed as device is deleted/removed",

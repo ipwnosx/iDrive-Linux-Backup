@@ -601,47 +601,45 @@ STARTSEARCH:
 
 	if($dedup eq 'on'){
 		while(<OUTFH>){
-			@fileName = split("\"", $_, 43);
-			if($#fileName != 42) {
-				next;
-			}
-			$temp = $fileName[41];
-			replaceXMLcharacters(\$temp);
-			my $quoted_current_source = quotemeta($current_source);
-			if($relative == 0) {
-				if($current_source ne "/") {
-					if($temp =~ s/^$quoted_current_source//) {
-						print $filehandle $temp.$lineFeed;
-					} else {
-						next;
-					}
-				} else {
-					print $filehandle $temp.$lineFeed;
-				}
-			}
-			else {
-				if($temp =~ /\^$remoteFolder/) {
-					$current_source = "/";
-					print RESTORE_FILE $temp.$lineFeed;
-					$RestoresetFileTmp = $RestoresetFile_relative;
-				}
-			}
-			$totalFiles++;
-			$filecount++;
-			$size = $fileName[5];
-			$size =~ s/\D+//g;
-			$size =~ s/\s+//g;
-			$totalSize += $size;
+            if($_ =~ /<item/ and $_ !~ /tot_items_deleted|items_found|files_found/){
+                my %itemName = Common::parseXMLOutput(\$_);
+                my $fname = $itemName{'fname'};
+                replaceXMLcharacters(\$fname);
 
-			if($filecount == FILE_MAX_COUNT) {
-				if( !-e $pidPath) {
-					last;
-				}
-				if(!createRestoreSetFiles1k()){
-					Common::traceLog($errStr);
-					return REMOTE_SEARCH_THOUSANDS_FILES_SET_ERROR;
-				}
-			}
+                my $quoted_current_source = quotemeta($current_source);
+                if($relative == 0) {
+                    if($current_source ne "/") {
+                        if($fname =~ s/^$quoted_current_source//) {
+                            print $filehandle $fname.$lineFeed;
+                        } else {
+                            next;
+                        }
+                    } else {
+                        print $filehandle $fname.$lineFeed;
+                    }
+                }
+                else {
+                    if($fname =~ /\^$remoteFolder/) {
+                        $current_source = "/";
+                        print RESTORE_FILE $fname.$lineFeed;
+                        $RestoresetFileTmp = $RestoresetFile_relative;
+                    }
+                }
+                $totalFiles++;
+                $filecount++;
+                $size = $itemName{'size'};
+                $totalSize += $size if($size =~ /^\d+$/);
+
+                if($filecount == FILE_MAX_COUNT) {
+                    if( !-e $pidPath) {
+                        last;
+                    }
+                    if(!createRestoreSetFiles1k()){
+                        Common::traceLog($errStr);
+                        return REMOTE_SEARCH_THOUSANDS_FILES_SET_ERROR;
+                    }
+                }
+            }
 		}
 	} else {
 		while(<OUTFH>){

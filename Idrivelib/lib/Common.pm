@@ -2314,6 +2314,12 @@ sub cleanupUpdate {
 
 	my $pidPath = Common::getCatfile(Common::getServicePath(), $AppConfig::pidFile);
 	unlink($pidPath) if (-e $pidPath);
+
+	my $preupdpid	= getCatfile(getCachedDir(), $AppConfig::preupdpid);
+	my $updpid		= getCatfile(getCachedDir(), $AppConfig::updatePid);
+	unlink($preupdpid) if(-f $preupdpid);
+	unlink($updpid) if(-f $updpid);
+
 	exit(0) unless(defined($_[0]));
 
 	$AppConfig::displayHeader = 0;
@@ -5357,9 +5363,15 @@ sub getUserModUtilCMD {
 
 	return 'su -m ' if (isGentoo());
 
+	my $os = getOSBuild();
+	if($os->{'os'} and $os->{'os'} eq 'centos') {
+		if(-f '/sbin/runuser') {
+			return '/sbin/runuser -l ';
+		}
+	}
+
 	for my $i (0 .. $#{$modUtils}) {
-		my $cmdCheckCmd = updateLocaleCmd("which $modUtils->[$i]");
-		$cmdCheck = `$cmdCheckCmd`;
+		$cmdCheck = `which $modUtils->[$i] 2>/dev/null`;
 		Chomp(\$cmdCheck);
 
 		# Commented by Senthil to resolve FreeBSD scheduled job issue
@@ -5631,6 +5643,28 @@ sub getCrontab {
 	}
 
 	return 0;
+}
+
+#*****************************************************************************************************
+# Subroutine	: getCurrentUserDashBdConfPath
+# In Param		: crontab | hash, machine user | string, idrive user | string
+# Out Param		: Command | String
+# Objective		: Returns dashboard path
+# Added By		: Sabin Cheruvattil
+# Modified By	: 
+#*****************************************************************************************************
+sub getCurrentUserDashBdConfPath {
+	my $ct = $_[0];
+	my $mcu = $_[1];
+	my $idu = $_[2];
+
+	return '' unless($ct);
+
+	if (exists $ct->{$mcu} && exists $ct->{$mcu}{$idu} && exists $ct->{$mcu}{$idu}{$AppConfig::dashbtask} && exists $ct->{$mcu}{$idu}{$AppConfig::dashbtask}{$AppConfig::dashbtask}) {
+		return $ct->{$mcu}{$idu}{$AppConfig::dashbtask}{$AppConfig::dashbtask}{'cmd'};
+	}
+
+	return '';
 }
 
 #*****************************************************************************************************
@@ -9516,7 +9550,7 @@ sub resetUserCRONSchemas {
 	loadCrontab(1);
 
 	for my $i (0 .. $#jobNames) {
-		createCrontab($jobTypes[$i], $jobNames[$i]);
+		createCrontab($jobTypes[$i], $jobNames[$i], \%AppConfig::crontabSchema);
 	}
 
 	createCrontab($AppConfig::dashbtask, $AppConfig::dashbtask);
@@ -11972,20 +12006,28 @@ sub verifyEditedFileContent {
 # Subroutine			: waitForUpdate
 # Objective				: This subroutine to check whether script update begins or not and it will wait if it begins.
 # Added By				: Senthil Pandian
-# Modified By			: Yogesh Kumar
+# Modified By			: Yogesh Kumar, Sabin Cheruvattil
 #****************************************************************************************************/
 sub waitForUpdate {
 	loadAppPath();
 	return 0 unless(loadServicePath());
+
 	my $updatePid = getCatfile(getCachedDir(), $AppConfig::updatePid);
+
 	if (-f $updatePid) {
-		while(isFileLocked($updatePid)) {
+		if(isFileLocked($updatePid)) {
+			display(['updating_scripts_wait', '...', "\n"]);
 			traceLog('updating_scripts_wait');
+		}
+
+		while(isFileLocked($updatePid)) {
 			sleepForMilliSec(100); # Sleep for 100 milliseconds
 		}
+
 		unlink($updatePid) if (-f $updatePid);
 		return 1;
 	}
+
 	return 0;
 }
 

@@ -380,7 +380,7 @@ sub sendReportMail {
 		return;
 	}
 
-	Common::display(["\n", 'successfully_reported_error', '.', "\n"]);
+	Common::display(["\n", 'successfully_sent_speed_analysis', '.', "\n"]);
 }
 #*****************************************************************************************************
 # Subroutine			: getReportUserEmails

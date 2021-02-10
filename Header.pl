@@ -241,7 +241,8 @@ our @ErrorArgumentsRetry = (
                            "failed to connect",
                            "Connection reset",
                            "connection unexpectedly closed",
-                           "failed to get the host name"
+                           "failed to get the host name",
+						   "Connection timed out",
                           );
 
 our @ErrorListForMinimalRetry = (
@@ -268,7 +269,6 @@ our @ErrorArgumentsExit = ( "encryption verification failed",
 							"No route to host",
 							#"Connection refused",
 							#"failed to connect",
-							"Connection timed out",
 							"Invalid device id",
 							"not enough free space on device",
 							"Unable to proceed as device is deleted/removed",
@@ -2724,6 +2724,9 @@ sub emptyLocationsQueries {
 				# print qq{\nYour Restore from location remains "$restoreHost".$lineFeed $lineFeed};
 				# holdScreen2displayMessage(2) if ($_[0] eq '');
 			# }
+
+			$restoreHost = Common::removeMultipleSlashs($restoreHost);
+			$restoreHost = Common::removeLastSlash($restoreHost);
 			Common::setUserConfiguration('RESTOREFROM', $restoreHost);
         	if ($dedup eq 'on'){
 				($restoreDeviceID,$restoreHost) = split ('#',$restoreHost);

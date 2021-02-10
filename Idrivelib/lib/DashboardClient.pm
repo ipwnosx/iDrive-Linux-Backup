@@ -2527,10 +2527,74 @@ debug('get file size');
 		},
 
 		'remote_install' => sub {
+			my %status;
+#			unless (exists $content->{'installdependencies'}) {
+#				$status{'status'} = AppConfig::FAILURE;
+#
+#				my $cmd = sprintf("%s %s dispdependency", $AppConfig::perlBin, Common::getScript('check_for_update', 1));
+#				$cmd = Common::updateLocaleCmd($cmd);
+#	
+#				my $result = `$cmd`;
+#				my $installDeps = 0;
+#				chomp($result);
+#				$result = JSON::from_json($result);
+#				if ($result->{'error'} ne '') {
+#					my $params = Idrivelib::get_dashboard_params({
+#						'0'   => '2',
+#						'1017'=> $data->{1017},
+#						'111' => $AppConfig::evsVersion,
+#						'113' => lc($AppConfig::deviceType),
+#						'130' => zlibCompress(to_json(\%status)),
+#						#'119' => 1,
+#						'101' => $at
+#					}, 1, 0);
+#					$params->{host} = getRemoteManageIP();
+#					$params->{method} = 'POST';
+#					$params->{json} = 1;
+#					my $response = request($params);
+#		
+#					return 1;
+#				}
+#				else {
+#					$status{'dependencies'} = "";
+#					if (scalar @{$result->{'pkg'}}) {
+#						$installDeps = 1;
+#						$status{'dependencies'} = join(', ', @{$result->{'pkg'}});
+#						$status{'dependencies'} .= ', ';
+#					}
+#					if (scalar @{$result->{'cpanpkg'}}) {
+#						$installDeps = 1;
+#						$status{'dependencies'} .= join(', ', @{$result->{'cpanpkg'}});
+#					}
+#				}
+#
+#				if ($installDeps) {
+#					$status{'installdependencies'} = 'yes';
+#					my $params = Idrivelib::get_dashboard_params({
+#						'0'   => '2',
+#						'1017'=> $data->{1017},
+#						'111' => $AppConfig::evsVersion,
+#						'113' => lc($AppConfig::deviceType),
+#						'130' => zlibCompress(to_json(\%status)),
+#						#'119' => 1,
+#						'101' => $at
+#					}, 1, 0);
+#					$params->{host} = getRemoteManageIP();
+#					$params->{method} = 'POST';
+#					$params->{json} = 1;
+#					my $response = request($params);
+#					return 1;
+#				}
+#			}
+
 			my $cmd = sprintf("%s %s silent &", $AppConfig::perlBin, Common::getScript('check_for_update', 1));
 			$cmd = Common::updateLocaleCmd($cmd);
 
-			my %status;
+			my $result = `$cmd`;
+			chomp($result);
+			$result = JSON::from_json($result);
+			if ($result->{'error'} eq '') {
+			}
 			unless (system($cmd) == 0) {
 			$status{'status'} = AppConfig::FAILURE;
 			}

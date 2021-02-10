@@ -93,6 +93,9 @@ sub performOperation {
 	elsif ($operation eq 'PREINSTDEPENDENCIES') {
 		interactiveDepInstall();
 	}
+	elsif ($operation eq 'DISPLAYPACKAGEDEP') {
+		displayPackageDep();
+	}
 	elsif ($operation eq 'VERIFYPREUPDATE') {
 		verifyPreUpdate();
 	}
@@ -181,6 +184,20 @@ sub disableAutoInstallCRON {
 		Common::setCrontab($AppConfig::misctask, $AppConfig::miscjob, {'settings' => {'status' => 'disabled'}});
 		Common::saveCrontab();
 	}
+}
+
+#*****************************************************************************************************
+# Subroutine		: displayPackageDep
+# In Param			: UNDEF
+# Out Param			: UNDEF
+# Objective			: Prints required dependencies
+# Added By			: Sabin Cheruvattil
+#*****************************************************************************************************
+sub displayPackageDep {
+	my $deps = {'pkg' => [], 'cpanpkg' => [], 'error' => ''};
+
+	Common::display(JSON::to_json($deps));
+	exit(0);
 }
 
 #*****************************************************************************************************

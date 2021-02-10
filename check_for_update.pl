@@ -15,6 +15,7 @@ use AppConfig;
 use File::Basename;
 use File::Copy qw(copy);
 use Scalar::Util qw(reftype);
+use JSON;
 
 init();
 
@@ -42,6 +43,12 @@ sub init {
 	}
 
 	Common::findDependencies(0) or Common::retreat('failed');
+
+	if($taskParam eq 'dispdependency' && Common::checkCRONServiceStatus() ne Common::CRON_RUNNING) {
+		my $deps = {'pkg' => [], 'cpanpkg' => [], 'error' => 'cron_not_running'};
+		Common::display(JSON::to_json($deps));
+		exit(0);
+	}
 
 	if ($taskParam eq '') {
 		system(Common::updateLocaleCmd('clear'));
@@ -72,45 +79,30 @@ sub init {
 			Common::display(['updating_scripts_wait', '...']);
 		}
 	}
-	elsif ($taskParam eq 'silent') {
+	elsif ($taskParam eq 'silent' || $taskParam eq 'dispdependency') {
 		$AppConfig::callerEnv = 'BACKGROUND';
 		checkAndCreateServiceDirectory();
 		$packageName = qq(/$AppConfig::tmpPath/$AppConfig::appPackageName$AppConfig::appPackageExt);
 		Common::cleanupUpdate('INIT');
 	}
-	elsif ($taskParam =~ /.zip$/i) {
-		system(Common::updateLocaleCmd('clear'));
-		Common::displayHeader();
-		checkAndCreateServiceDirectory();
-		$packageName = $taskParam;
-		Common::cleanupUpdate('INIT');
-		Common::cleanupUpdate(['file_not_found', ": $packageName"]) unless (-e $packageName);
-
-		my $usrProfileDirPath	= Common::getCatfile(Common::getServicePath(), $AppConfig::userProfilePath);
-		if(-d $usrProfileDirPath) {
-			Common::display(['updating_script_will_logout_users','do_you_want_to_continue_yn']);
-			Common::cleanupUpdate() if (Common::getAndValidate('enter_your_choice', 'YN_choice', 1) eq 'n');
-		}
-
-		$packageName = qq(/$AppConfig::tmpPath/$AppConfig::appPackageName$AppConfig::appPackageExt);
-		copy $taskParam, $packageName;
-	}
 	else{
 		Common::retreat(['invalid_parameter', ': ', $taskParam, '. ', 'please_try_again', '.']);
 	}
 
-	if ($taskParam !~ /.zip$/i) {
-		# Download the package to update the scripts
-		Common::cleanupUpdate(['update_failed_to_download']) unless (Common::download($AppConfig::appDownloadURL, qq(/$AppConfig::tmpPath)));
-		Common::cleanupUpdate(['update_failed_to_download']) unless (-e qq($packageName));
-	}
-
-	createUpdatePid();
-	deleteVersionInfoFile();
+	# Download the package to update the scripts
+	Common::cleanupUpdate(['update_failed_to_download']) unless (Common::download($AppConfig::appDownloadURL, qq(/$AppConfig::tmpPath)));
+	Common::cleanupUpdate(['update_failed_to_download']) unless (-e qq($packageName));
 
 	my $packagedir	= extractPackage($packageName);
 
+	displayPackageDep($packagedir) if($taskParam eq 'dispdependency');
+
+	createUpdatePid('preupdate');
 	preUpdate($taskParam, $packagedir);
+
+	createUpdatePid('update');
+	deleteVersionInfoFile();
+
 	installUpdates($packagedir);
 
 	Common::display(['scripts_updated_successfully']) unless ($taskParam eq 'silent');
@@ -167,6 +159,22 @@ sub extractPackage {
 	Common::cleanupUpdate(['update_failed_unable_to_unzip']) if (-s $zipLogFile);
 
 	return $packageDir;
+}
+
+#*************************************************************************************************
+# Subroutine		: displayPackageDep
+# Objective			: Display future package dependencies.
+# Added By			: Sabin Cheruvattil
+#*************************************************************************************************
+sub displayPackageDep {
+	my $perlBin = $AppConfig::perlBin;
+	my $cmd = $perlBin . ' ' . Common::getECatfile($_[0], $AppConfig::idriveScripts{'utility'}) . ' DISPLAYPACKAGEDEP 2>/dev/null';
+	my $res = `$cmd`;
+
+	$AppConfig::callerEnv = '';
+	Common::display($res, 0);
+
+	exit(0);
 }
 
 #*************************************************************************************************
@@ -364,11 +372,10 @@ sub deleteVersionInfoFile {
 #*************************************************************************************************
 sub preUpdate {
 	my $perlBin = $AppConfig::perlBin;
-	$perlBin = Common::getIDrivePerlBin() if (Common::hasStaticPerlBinary());
 	my $cmd = ($perlBin . ' ' . Common::getECatfile($_[1], $AppConfig::idriveScripts{'utility'}) . ' PREUPDATE ' . "'" . $AppConfig::version . "' " . qq('$_[0]') . " '" . Common::getServicePath() . "' '" . Common::getUsername() . "'" . " 2>/dev/null");
 	my $res = system($cmd);
 
-	Common::retreat(['failed_to_run_script', Common::getScript('utility', 1), ". Reason:" . $?]) if ($res);
+	Common::retreat(['failed_to_complete_preupdate', "."], 0) if ($res);
 }
 
 #*************************************************************************************************
@@ -406,9 +413,16 @@ sub checkAndCreateServiceDirectory {
 # Subroutine		: createUpdatePid
 # Objective			: check and create update pid if not exists
 # Added By			: Senthil Pandian
+# Modified By		: Sabin Cheruvattil
 #*************************************************************************************************/
 sub createUpdatePid {
-	my $updatePid = Common::getCatfile(Common::getCachedDir(), $AppConfig::updatePid);
+	my $updatePid = '';
+	if($_[0] and $_[0] eq 'preupdate') {
+		$updatePid = Common::getCatfile(Common::getCachedDir(), $AppConfig::preupdpid);
+	} else {
+		$updatePid = Common::getCatfile(Common::getCachedDir(), $AppConfig::updatePid);
+	}
+
 	# Check if another job is already in progress
 	if (Common::isFileLocked($updatePid)) {
 		Common::retreat('updating_scripts_wait');
@@ -422,6 +436,7 @@ sub createUpdatePid {
 # Subroutine		: checkWritePermission
 # Objective			: check write permission of scripts
 # Added By			: Senthil Pandian
+# Modified By   : Yogesh Kumar
 #*************************************************************************************************/
 sub checkWritePermission {
 	my $scriptDir = Common::getAppPath();
@@ -433,7 +448,7 @@ sub checkWritePermission {
 	foreach my $script (readdir($dh)) {
 		next if ($script eq '.' or $script eq '..');
 		next if (-f $script and $script !~ /.pl|.pm/ and $script ne 'readme.txt');
-		if(!-w $script){
+		if (!-w Common::getCatfile($scriptDir, $script)) {
 			Common::retreat(['system_user', " '$AppConfig::mcUser' ", 'does_not_have_sufficient_permissions',' ','please_run_this_script_in_privileged_user_mode','update.']);
 		}
 	}

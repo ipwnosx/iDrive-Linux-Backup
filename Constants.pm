@@ -61,8 +61,8 @@ use constant CONST => {
 			AskMirrorType	=> '1) Mirror',
 			AskRelativeType	=> '2) Relative',
 			Product => 'ForLinux',
-			ScriptBuildVersion => '2.28',
-			ScriptReleaseDate => '07-29-2020',
+			ScriptBuildVersion => '2.29',
+			ScriptReleaseDate => '01-20-2021',
 		#------------------EVS Operations ---------------------#
 			LinkBucketOp => 'LinkBucket',
 			NickUpdateOp => 'NickUpdate',

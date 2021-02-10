@@ -662,4 +662,9 @@ IX. RELEASES
 		2. Fixed the remote file verification issue in edit_supported_files.pl when configured restore from location path having extra slashes.
 		3. Avoiding extra slashes in backup location path at the time of user input.
 		4. Avoiding extra slashes in restore from location path at the time of user input.
-	
+
+	Build 2.29
+	==============================================================================================================
+		1. Fine tuned the script update process for check for update script and silent update from dashboard.
+		2. Fixed the issue for directory restore for few specific scenarios.
+		3. Fixed dashboard launch issue in CentOS 8.

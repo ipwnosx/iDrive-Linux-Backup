@@ -154,12 +154,20 @@ sub init {
 		}
 	}
 
+	my $accswitch = 0;
 	if($AppConfig::appType eq 'IDrive') {
-		Common::loadCrontab(1);
-		my $ce  = Common::getCrontab($AppConfig::dashbtask, $AppConfig::dashbtask, '{cmd}');
-		unless (!$ce || $ce eq '') {
+		Common::loadCrontab();
+		my $ct = Common::getCrontab();
+		my $ce = Common::getCurrentUserDashBdConfPath($ct, $AppConfig::mcUser, $uname);
+
+		if ($ce and $ce ne '') {
+			$ce =~ s/\/$AppConfig::idriveLibPath//;
 			my $cip = Common::getScript($AppConfig::dashbtask);
-			unless ($ce eq $cip) {
+            my $appPath = Common::getAppPath();
+            $appPath = quotemeta($appPath);
+
+	    	#	unless ($ce eq $cip) { #Modified for Harish_2.3_12_7
+			if ($ce ne $cip and $ce !~ /$appPath/) {    
 				Common::display(["\n", 'Linux user', ' "', $AppConfig::mcUser, '" ', 'is_already_having_active_setup_path', ' ', '"' . dirname($ce) . '"', '. '], 0);
 				Common::display(["\n",'config_same_user_will_del_old_schedule', ' '], 0);
 				Common::display([ 'do_you_want_to_continue_yn']);
@@ -167,11 +175,13 @@ sub init {
 
 				# user doesn't want to reset the dashboard job, check and start dashboard job
 				exit(0) if ($resetchoice eq 'n');
+				$accswitch = 1;
 
 				# Common::unloadUserConfigurations(); #Commented by Senthil : 17-Sep-2019
 			}
 		}
 	}
+
 	Common::setUsername($uname);
 	# Section to switch user - End
 
@@ -335,7 +345,7 @@ sub init {
 
 	# manage dashboard here
 	if ($AppConfig::appType eq 'IDrive') {
-		manageDashboardJob($uname);
+		manageDashboardJob($accswitch);
 	}
 
 	if ($isAccountConfigured) {
@@ -605,32 +615,37 @@ sub manageDashboardJob {
 	Common::loadCrontab(1);
 	my $curdashscript = Common::getCrontab($AppConfig::dashbtask, $AppConfig::dashbtask, '{cmd}');
 
-	# account not configured | no cron tab entry | dashboard script empty
-	if (!$curdashscript || $curdashscript eq '') {
-		Common::createCrontab($AppConfig::dashbtask, $AppConfig::dashbtask);
-		Common::setCronCMD($AppConfig::dashbtask, $AppConfig::dashbtask);
-		Common::saveCrontab();
-		Common::checkAndStartDashboard(0);
-		return 1;
+	if(!$_[0]) {
+		# account not configured | no cron tab entry | dashboard script empty
+		if (!$curdashscript || $curdashscript eq '') {
+			Common::createCrontab($AppConfig::dashbtask, $AppConfig::dashbtask);
+			Common::setCronCMD($AppConfig::dashbtask, $AppConfig::dashbtask);
+			Common::saveCrontab();
+			Common::checkAndStartDashboard(0);
+			return 1;
+		}
+
+		my $newdashscript = Common::getScript($AppConfig::dashbtask);
+		# check same path or not
+		if ($curdashscript eq $newdashscript) {
+			# lets handle dashboard job; check and start dashboard
+			return Common::checkAndStartDashboard(1);
+		}
+
+		# dashboard scripts are not the same. old path not valid | reset user's cron schemas to default
+		unless(-f $curdashscript) {
+			Common::resetUserCRONSchemas();
+			return Common::checkAndStartDashboard(0);
+		}
 	}
 
-	my $newdashscript = Common::getScript($AppConfig::dashbtask);
-	# check same path or not
-	if ($curdashscript eq $newdashscript) {
-		# lets handle dashboard job; check and start dashboard
-		return Common::checkAndStartDashboard(1);
-	}
-
-	# dashboard scripts are not the same. old path not valid | reset user's cron schemas to default
-	unless(-f $curdashscript) {
-		Common::resetUserCRONSchemas();
-		return Common::checkAndStartDashboard(0);
-	}
-
-	# reset all the schemes of the user
-	Common::resetUserCRONSchemas();
 	# kill the running dashboard job
-	Common::stopDashboardService($AppConfig::mcUser, dirname($curdashscript));
+	$curdashscript = dirname($curdashscript);
+	$curdashscript =~ s/$AppConfig::idriveLibPath//;
+	Common::stopDashboardService($AppConfig::mcUser, $curdashscript);
+
+	Common::resetUserCRONSchemas();
+
 	# kill all the running jobs belongs to this user
 	my $cmd = sprintf("%s %s 'allOp' %s 0 'allType'", $AppConfig::perlBin, Common::getScript('job_termination', 1), Common::getUsername());
 	$cmd = Common::updateLocaleCmd($cmd);

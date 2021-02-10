@@ -412,7 +412,8 @@ our %strings = (
 	'failed_to_update_cron'                             => "Failed to update $AppConfig::appType Cron. ",
 	'failed_to_restore_settings'                        => "Failed to Restore settings",
 	'failed_to_configure'                               => "Failed to configure. Reason: ",
-	'failed_to_fetch_quota'                             => "Failed to fetch quota. Reason: ",	
+	'failed_to_fetch_quota'                             => "Failed to fetch quota. Reason: ",
+	'failed_to_complete_preupdate'						=> 'Failed to complete pre-update check',
 #------------------------------------------------- G -------------------------------------------------#
 #------------------------------------------------- H -------------------------------------------------#
 	'hardware_platform'               => "Hardware Platform",
@@ -727,6 +728,7 @@ our %strings = (
 	'select_the_item_you_want_to_edit'                                            => "Select the item which you want to edit",
 	'scheduled_backup'                                                            => "Scheduled backup",
 	'scheduled_restore'                                                           => "Scheduled restore",
+	'successfully_sent_speed_analysis'                                            => 'Speed analysis report has been sent',
 	'successfully_reported_error'                                                 => 'Error report has been sent',
 	'selected_date_range'                                                         => 'Selected date range',
 	'select_option_to_view_logs_for'                                              => 'Select option to view logs for',

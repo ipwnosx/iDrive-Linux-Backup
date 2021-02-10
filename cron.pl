@@ -378,7 +378,7 @@ sub bootloadCronRestart {
 		my $shpath = `which sh 2>/dev/null`;
 		chomp($shpath);
 
-		if($shpath && $opconf->{'serv-mod'} eq 'ups' && $os->{'os'} eq 'ubuntu') {
+		if($shpath) {
 			if(defined($oldlockinfo[3]) && $oldlockinfo[3] eq 'update') {
 				launchFallbackHandler();
 				exit(0);
